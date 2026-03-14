@@ -1,19 +1,71 @@
-from agents.memory_agent import get_memory, update_memory
-from utils.prompts import STORY_PROMPT
-from models.story_models import StoryResponse
-from typing import Callable
+"""
+The brain of the storytelling pipeline.
 
-async def build_prompt(session_id: str, user_input: str) -> str:
+It connects:
+  memory_agent  → knows what happened in the story so far
+  gemini_agent  → calls Gemini to generate the next scene
+  prompts       → builds the right prompt for each situation
 
-    memory = "\n".join(get_memory(session_id))
+Two main functions:
+  start_story()    → generates the very first scene
+  continue_story() → generates the next scene based on the child's choice
+"""
+from agents.gemini_agent import generate_story_scene
+from agents.memory_agent import get_session, add_to_history, get_history_text, increment_scene
+from utils.prompts import SYSTEM_PROMPT, build_start_prompt, build_continue_prompt
+from models.story_models import StoryScene
 
-    return STORY_PROMPT.format(memory= memory, input= user_input)
+async def start_story(session_id: str) -> StoryScene:
+    """
+    Generate the opening scene of the story.
+    Called once when the child first starts a new adventure.
+    """
+    session = get_session(session_id)
+    if not session:
+        raise ValueError(f"Session '{session_id}' not found. Call create_session first.")
 
-async def process_story(session_id: str, user_input: str, gemini_fn: Callable) -> StoryResponse:
-    prompt = await build_prompt(session_id, user_input)
+    prompt = build_start_prompt(
+        hero_name=session.hero_name,
+        world_name=session.world_name,
+        genre=session.genre,
+    )
 
-    story_text = await gemini_fn(prompt)
+    scene = await generate_story_scene(prompt, SYSTEM_PROMPT)
 
-    update_memory(session_id, user_input)
+    # Save the AI's story output to memory
+    add_to_history(session_id, "story", scene.scene_text)
+    increment_scene(session_id)
 
-    return story_text
+    return scene
+
+
+async def continue_story(session_id: str, user_input: str) -> StoryScene:
+    """
+    Generate the next scene based on what the child chose or said.
+
+    """
+    session = get_session(session_id)
+    if not session:
+        raise ValueError(f"Session '{session_id}' not found.")
+
+    # Get formatted history to give Gemini context
+    history = get_history_text(session_id)
+
+    # Save child's input to memory BEFORE generating
+    add_to_history(session_id, "user", user_input)
+
+    prompt = build_continue_prompt(
+        hero_name=session.hero_name,
+        world_name=session.world_name,
+        genre=session.genre,
+        history=history,
+        user_input=user_input,
+    )
+
+    scene = await generate_story_scene(prompt, SYSTEM_PROMPT)
+
+    # Save AI's response to memory
+    add_to_history(session_id, "story", scene.scene_text)
+    increment_scene(session_id)
+
+    return scene
