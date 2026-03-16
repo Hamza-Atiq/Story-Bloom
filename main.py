@@ -34,6 +34,11 @@ images_dir = Path("images_temp")
 images_dir.mkdir(exist_ok=True)
 app.mount("/images", StaticFiles(directory=images_dir), name="images")
 
+# ── Serve generated videos at /videos/filename.mp4 ───────────────────────────
+videos_dir = Path("videos_temp")
+videos_dir.mkdir(exist_ok=True)
+app.mount("/videos", StaticFiles(directory=videos_dir), name="videos")
+
 # ── HTTP routes ───────────────────────────────────────────────────────────────
 app.include_router(router)
 

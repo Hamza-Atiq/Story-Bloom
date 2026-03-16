@@ -2,9 +2,8 @@
 All prompts used by the story engine.
 """
 
-# System prompt: tells Gemini WHO it is and HOW to behave
 SYSTEM_PROMPT = """
-You are StoryBloom, a magical AI storyteller for children aged 4-10.
+You are StoryBloom, a magical AI storyteller for children aged 2-10.
 
 Your personality:
 - Warm, encouraging, and imaginative
@@ -15,6 +14,8 @@ Your personality:
 Story rules:
 - Each scene must be exactly 2-3 short, vivid paragraphs
 - Use the hero's name often to keep it personal
+- If an animal companion is given, make it a CENTRAL, LOVABLE character
+  (the animal talks, helps, makes its sound, and drives the story forward)
 - Maintain perfect continuity with past events
 - End EVERY scene with EXACTLY 3 clear, different choices
   (make choices meaningfully different: e.g., brave / clever / kind)
@@ -24,26 +25,50 @@ Story rules:
 IMPORTANT: Always respond with valid JSON matching the required schema.
 """
 
-def build_start_prompt(hero_name: str, world_name: str, genre: str) -> str:
-    """Prompt for the very first scene of the story."""
+
+def _animal_context(animal: str | None) -> str:
+    if not animal:
+        return ""
+    return (
+        f"\n  Animal companion: A friendly, lovable {animal} who travels with {'{hero}'} "
+        f"and makes {animal} sounds. The {animal} is cute, expressive, and helps the hero."
+    )
+
+
+def build_start_prompt(hero_name: str, world_name: str, genre: str, animal: str | None = None) -> str:
+    animal_line = ""
+    if animal:
+        animal_line = (
+            f"\n  Animal companion: A friendly {animal} named after something fun "
+            f"who makes {animal} sounds and becomes {hero_name}'s best friend on this adventure."
+        )
     return f"""
-  Create the opening scene of a {genre} story for a child.
+  Create the opening scene of a {genre} story for a young child.
 
   Hero name: {hero_name}
-  World name: {world_name}
+  World name: {world_name}{animal_line}
 
   Write an exciting introduction that immediately pulls the child into the adventure.
-  Introduce the world, the hero, and a problem or mystery that needs to be solved.
+  Introduce the world, the hero{"and their " + animal + " companion" if animal else ""}, and a fun problem or mystery to solve.
+  {"Make the " + animal + " appear right away, make a sound, and be funny and lovable." if animal else ""}
   End with exactly 3 choices for what {hero_name} should do first.
 """
 
-def build_continue_prompt(hero_name: str, world_name: str, genre: str, history: str, user_input: str) -> str:
-    """Prompt for continuing the story based on the child's input."""
+
+def build_continue_prompt(
+    hero_name: str,
+    world_name: str,
+    genre: str,
+    history: str,
+    user_input: str,
+    animal: str | None = None,
+) -> str:
+    animal_line = f"\n  Animal companion: {animal} (keep them present and active)" if animal else ""
     return f"""
   Continue the {genre} story.
 
   Hero: {hero_name}
-  World: {world_name}
+  World: {world_name}{animal_line}
 
   Story so far:
   {history}
@@ -52,5 +77,6 @@ def build_continue_prompt(hero_name: str, world_name: str, genre: str, history: 
 
   Write the next exciting scene that responds directly to what the child chose.
   Make {hero_name} take action based on that choice.
+  {"Keep the " + animal + " companion involved — they should react, help, or be funny." if animal else ""}
   End with exactly 3 new choices for what happens next.
 """

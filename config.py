@@ -20,4 +20,7 @@ IMAGE_MODEL = "gemini-2.5-flash-image"
 TTS_MODEL = "gemini-2.5-flash-preview-tts"
 TTS_VOICE = "Aoede"  # Warm, expressive voice — great for children's stories
 
+# Model for scene video generation (Veo 2)
+VIDEO_MODEL = "veo-2.0-generate-001"
+
 MAX_HISTORY_TURNS = 10

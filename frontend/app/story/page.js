@@ -25,16 +25,23 @@ const CHOICE_EMOJIS = ['🗡️', '🧠', '💚']
 const CHOICE_STYLES = ['btn-choice-purple', 'btn-choice-pink', 'btn-choice-green']
 
 // ─── StarField ───────────────────────────────────────────────────────────────
-// Same twinkling background used on the home page
+// Stars are generated client-side only (useEffect) to avoid SSR hydration mismatch
+// caused by Math.random() producing different values on server vs client.
 function StarField() {
-  const stars = Array.from({ length: 60 }, (_, i) => ({
-    id: i,
-    top: `${Math.random() * 100}%`,
-    left: `${Math.random() * 100}%`,
-    delay: `${(Math.random() * 5).toFixed(1)}s`,
-    duration: `${(2 + Math.random() * 4).toFixed(1)}s`,
-    large: Math.random() > 0.7,
-  }))
+  const [stars, setStars] = useState([])
+
+  useEffect(() => {
+    setStars(Array.from({ length: 60 }, (_, i) => ({
+      id: i,
+      top: `${Math.random() * 100}%`,
+      left: `${Math.random() * 100}%`,
+      delay: `${(Math.random() * 5).toFixed(1)}s`,
+      duration: `${(2 + Math.random() * 4).toFixed(1)}s`,
+      large: Math.random() > 0.7,
+    })))
+  }, [])
+
+  if (stars.length === 0) return null
 
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
@@ -145,6 +152,11 @@ export default function StoryPage() {
 
   // General error messages
   const [error, setError] = useState('')
+
+  // Video generation state
+  const [videoLoading, setVideoLoading] = useState(false)
+  const [videoUrl, setVideoUrl] = useState(null)
+  const [showVideo, setShowVideo] = useState(false)
 
   // Refs — persist between renders without causing re-renders
   const wsRef = useRef(null)         // WebSocket instance
@@ -271,6 +283,24 @@ export default function StoryPage() {
   // Allow Enter key to submit custom text
   function handleTextKeyDown(e) {
     if (e.key === 'Enter') handleSendText()
+  }
+
+  async function handleGenerateVideo() {
+    if (!session) return
+    setVideoLoading(true)
+    setVideoUrl(null)
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/video/${session.sessionId}`, { method: 'POST' })
+      if (!res.ok) throw new Error('Video generation failed')
+      const data = await res.json()
+      setVideoUrl(data.video_url)
+      setShowVideo(true)
+    } catch (err) {
+      console.error('Video error:', err)
+      setError('Could not generate video. Please try again. 🎬')
+    } finally {
+      setVideoLoading(false)
+    }
   }
 
   // ── Voice input via Web Speech API ───────────────────────────────────────
@@ -519,6 +549,22 @@ export default function StoryPage() {
                 >
                   ✏️ Type your own idea
                 </button>
+
+                {/* Generate Video button */}
+                <button
+                  onClick={handleGenerateVideo}
+                  disabled={videoLoading || generating}
+                  className={`flex items-center gap-2 px-5 py-3 rounded-xl font-semibold
+                              text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
+                    videoLoading ? 'animate-pulse' : ''
+                  }`}
+                  style={{
+                    background: 'linear-gradient(135deg, #7c2d12, #ea580c)',
+                    boxShadow: '0 0 15px rgba(234, 88, 12, 0.3)',
+                  }}
+                >
+                  🎬 {videoLoading ? 'Making video... (~1 min)' : 'Watch Video'}
+                </button>
               </div>
 
               {/* Voice transcription result — shown briefly after recording */}
@@ -592,6 +638,38 @@ export default function StoryPage() {
           </span>
         </div>
       </div>
+
+      {/* Video Modal */}
+      {showVideo && videoUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}
+          onClick={() => setShowVideo(false)}
+        >
+          <div
+            className="relative w-full max-w-2xl rounded-2xl overflow-hidden"
+            style={{ border: '2px solid rgba(168, 85, 247, 0.6)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-4 py-3"
+              style={{ background: 'rgba(30, 27, 75, 0.95)' }}>
+              <span className="text-white font-bold">🎬 Your Story Video</span>
+              <button
+                onClick={() => setShowVideo(false)}
+                className="text-purple-300 hover:text-white text-2xl transition-colors"
+              >✕</button>
+            </div>
+            <video
+              src={`${BACKEND_URL}${videoUrl}`}
+              controls
+              autoPlay
+              loop
+              className="w-full"
+              style={{ background: '#000' }}
+            />
+          </div>
+        </div>
+      )}
     </main>
   )
 }
