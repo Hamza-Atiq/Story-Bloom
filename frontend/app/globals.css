@@ -1,0 +1,178 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =============================================
+   GLOBAL STYLES FOR STORYBLOOM
+   Dark magical theme with stars and glow effects
+   ============================================= */
+
+/* Base page background — deep space purple */
+html,
+body {
+  background-color: #0f0a1e;
+  color: white;
+  min-height: 100vh;
+  font-family: 'Georgia', serif;
+}
+
+/* =============================================
+   STAR ANIMATION
+   Small white dots that twinkle across the sky
+   ============================================= */
+@keyframes twinkle {
+  0%   { opacity: 0; transform: scale(0.8); }
+  50%  { opacity: 1; transform: scale(1.2); }
+  100% { opacity: 0; transform: scale(0.8); }
+}
+
+/* Floating animation for decorative elements */
+@keyframes float {
+  0%   { transform: translateY(0px); }
+  50%  { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+/* Shimmer animation for loading skeletons */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+/* Gentle pulse for the main title */
+@keyframes glowPulse {
+  0%, 100% { text-shadow: 0 0 20px #a855f7, 0 0 40px #7c3aed, 0 0 60px #4c1d95; }
+  50%       { text-shadow: 0 0 30px #c084fc, 0 0 60px #a855f7, 0 0 90px #7c3aed; }
+}
+
+/* Star class — small white circles scattered in the background */
+.star {
+  position: absolute;
+  background-color: white;
+  border-radius: 50%;
+  width: 2px;
+  height: 2px;
+  animation: twinkle var(--twinkle-duration, 3s) ease-in-out infinite;
+  animation-delay: var(--twinkle-delay, 0s);
+}
+
+/* Slightly larger star variant */
+.star-lg {
+  width: 3px;
+  height: 3px;
+}
+
+/* =============================================
+   GLOW EFFECTS
+   Used on headings and important UI elements
+   ============================================= */
+.glow-title {
+  animation: glowPulse 3s ease-in-out infinite;
+}
+
+.glow-purple {
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.5), 0 0 40px rgba(109, 40, 217, 0.3);
+}
+
+.glow-pink {
+  box-shadow: 0 0 20px rgba(236, 72, 153, 0.5), 0 0 40px rgba(190, 24, 93, 0.3);
+}
+
+/* =============================================
+   SHIMMER LOADING SKELETON
+   Shows while images or content are loading
+   ============================================= */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.05) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* =============================================
+   CHOICE BUTTON GRADIENTS
+   Three different colored buttons for story choices
+   ============================================= */
+.btn-choice-purple {
+  background: linear-gradient(135deg, #5b21b6, #7c3aed);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.btn-choice-purple:hover {
+  transform: scale(1.03);
+  box-shadow: 0 0 25px rgba(124, 58, 237, 0.7);
+}
+
+.btn-choice-pink {
+  background: linear-gradient(135deg, #9d174d, #db2777);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.btn-choice-pink:hover {
+  transform: scale(1.03);
+  box-shadow: 0 0 25px rgba(219, 39, 119, 0.7);
+}
+
+.btn-choice-green {
+  background: linear-gradient(135deg, #065f46, #059669);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.btn-choice-green:hover {
+  transform: scale(1.03);
+  box-shadow: 0 0 25px rgba(5, 150, 105, 0.7);
+}
+
+/* =============================================
+   GENRE CARD
+   Selected state gives a glowing border
+   ============================================= */
+.genre-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+.genre-card:hover {
+  transform: scale(1.05);
+}
+.genre-card.selected {
+  transform: scale(1.08);
+  box-shadow: 0 0 0 3px #a855f7, 0 0 30px rgba(168, 85, 247, 0.6);
+}
+
+/* =============================================
+   CUSTOM SCROLLBAR
+   Styled to match the dark magical theme
+   ============================================= */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #1e1b4b;
+}
+::-webkit-scrollbar-thumb {
+  background: #5b21b6;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #7c3aed;
+}
+
+/* =============================================
+   STORY TEXT
+   Large, readable serif text for the narrative
+   ============================================= */
+.story-text {
+  font-family: 'Georgia', 'Cambria', serif;
+  font-size: 1.15rem;
+  line-height: 1.9;
+  color: #e2e8f0;
+}
+
+/* =============================================
+   FLOATING ANIMATION UTILITY
+   Apply to decorative emoji / icons
+   ============================================= */
+.float-anim {
+  animation: float 4s ease-in-out infinite;
+}

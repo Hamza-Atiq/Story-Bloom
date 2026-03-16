@@ -1,13 +1,45 @@
 # Python cache
 __pycache__/
 *.pyc
+
 # Virtual environment
-venv1
+venv1/
 venv/
+
+# Environment variables
 .env
+.env.local
+.env*.local
 
 # VS Code settings
 .vscode/
 
 # Logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Node.js dependencies
+node_modules/
+.npm
+
+# Next.js build output
+.next/
+out/
+
+# Build output
+dist/
+build/
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Misc
+.DS_Store
+*.pem
+Thumbs.db
+
+# Audio temp files
+audio_temp/
