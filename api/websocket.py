@@ -29,7 +29,7 @@ async def _send_scene(ws: WebSocket, session_id: str, scene) -> None:
         "scene_number": session.scene_number if session else 1,
         "scene_text": scene.scene_text,
         "image_url": image_url,
-        "audio_base64": audio_url,
+        "audio_url": audio_url,
         "choices": scene.choices,
     })
 

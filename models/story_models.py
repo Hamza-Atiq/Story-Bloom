@@ -45,5 +45,5 @@ class StoryResponse(BaseModel):
     scene_number: int
     scene_text: str
     image_url: Optional[str] = None
-    audio_base64: Optional[str] = None
+    audio_url: Optional[str] = None
     choices: List[str]

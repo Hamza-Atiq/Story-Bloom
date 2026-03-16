@@ -1,6 +1,4 @@
 """
-animal_sound_service.py
------------------------
 Fetches real animal sound recordings from Wikimedia Commons.
 
 Flow:

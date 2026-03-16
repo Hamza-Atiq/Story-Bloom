@@ -249,28 +249,28 @@ export default function HomePage() {
   }
 
   return (
-    <main className="relative min-h-screen flex flex-col items-center justify-center px-4 py-12">
+    <main className="relative h-screen overflow-hidden flex flex-col items-center px-4 py-6">
       <StarField />
 
-      <div className="relative z-10 w-full max-w-6xl flex flex-col items-center gap-8">
+      <div className="relative z-10 w-full max-w-6xl flex flex-col gap-4 h-full overflow-hidden">
 
         {/* Title */}
-        <div className="text-center">
-          <div className="text-7xl mb-4 float-anim select-none">📖</div>
-          <h1 className="text-6xl font-bold tracking-tight glow-title"
+        <div className="text-center flex-shrink-0">
+          <div className="text-4xl mb-1 float-anim select-none">📖</div>
+          <h1 className="text-4xl font-bold tracking-tight glow-title"
             style={{ background: 'linear-gradient(135deg, #c084fc, #818cf8, #f472b6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
             StoryBloom
           </h1>
-          <p className="mt-3 text-purple-300 text-lg">
+          <p className="mt-1 text-purple-300 text-sm">
             Where every child becomes the hero of their own magical tale ✨
           </p>
         </div>
 
         {/* Two-column layout */}
-        <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0">
 
           {/* ── LEFT COLUMN: Story Setup ── */}
-          <div className="rounded-2xl p-8 flex flex-col gap-6"
+          <div className="rounded-2xl p-6 flex flex-col gap-4 overflow-y-auto"
             style={{ background: 'rgba(30, 27, 75, 0.7)', backdropFilter: 'blur(12px)', border: '1px solid rgba(139, 92, 246, 0.3)', boxShadow: '0 0 40px rgba(109, 40, 217, 0.2)' }}>
 
             <div className="flex items-center gap-2 mb-2">
@@ -356,15 +356,15 @@ export default function HomePage() {
                   <button
                     key={genre.id}
                     onClick={() => setSelectedGenre(genre.id)}
-                    className={`genre-card rounded-xl p-4 text-left ${selectedGenre === genre.id ? 'selected' : ''}`}
+                    className={`genre-card rounded-xl p-3 text-left ${selectedGenre === genre.id ? 'selected' : ''}`}
                     style={{
                       background: selectedGenre === genre.id ? 'rgba(109, 40, 217, 0.6)' : 'rgba(76, 29, 149, 0.3)',
                       border: selectedGenre === genre.id ? '2px solid #a855f7' : '2px solid rgba(139, 92, 246, 0.25)',
                     }}
                   >
-                    <div className="text-4xl mb-1">{genre.emoji}</div>
-                    <div className="text-white font-bold text-lg">{genre.label}</div>
-                    <div className="text-purple-300 text-sm mt-1 leading-snug">{genre.desc}</div>
+                    <div className="text-3xl mb-1">{genre.emoji}</div>
+                    <div className="text-white font-bold">{genre.label}</div>
+                    <div className="text-purple-300 text-xs mt-1 leading-snug">{genre.desc}</div>
                   </button>
                 ))}
               </div>
@@ -395,7 +395,7 @@ export default function HomePage() {
           </div>
 
           {/* ── RIGHT COLUMN: Animal Selection ── */}
-          <div className="rounded-2xl p-8 flex flex-col gap-5"
+          <div className="rounded-2xl p-6 flex flex-col gap-3 overflow-hidden"
             style={{ background: 'rgba(30, 27, 75, 0.7)', backdropFilter: 'blur(12px)', border: '1px solid rgba(139, 92, 246, 0.3)', boxShadow: '0 0 40px rgba(109, 40, 217, 0.2)' }}>
 
             <div className="flex items-center gap-2">
@@ -434,9 +434,8 @@ export default function HomePage() {
               </div>
             )}
 
-            {/* Animal grid */}
-            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-2 overflow-y-auto"
-              style={{ maxHeight: '380px' }}>
+            {/* Animal grid — 6 columns on large screens = 3 rows × 6 = 18 animals, no scroll */}
+            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 flex-1 min-h-0 content-evenly">
               {ANIMALS.map((animal) => {
                 const isSelected = selectedAnimal === animal.id
                 const isFlashing = lastSoundAnimal === animal.id
@@ -444,7 +443,7 @@ export default function HomePage() {
                   <button
                     key={animal.id}
                     onClick={() => isSelected ? deselectAnimal() : playAnimalSound(animal)}
-                    className="flex flex-col items-center gap-1 rounded-xl p-3 transition-all duration-150"
+                    className="flex flex-col items-center gap-1 rounded-xl p-2 transition-all duration-150"
                     style={{
                       background: isSelected
                         ? 'rgba(109, 40, 217, 0.6)'
@@ -475,7 +474,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        <p className="text-purple-500 text-sm text-center">
+        <p className="text-purple-500 text-xs text-center flex-shrink-0">
           Powered by Gemini AI ✨ • Every story is unique just for you
         </p>
       </div>

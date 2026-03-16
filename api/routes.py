@@ -42,7 +42,7 @@ async def create_story_session(data: SessionInit):
         scene_number=session.scene_number,
         scene_text=scene.scene_text,
         image_url=image_url,
-        audio_base64=audio_url,
+        audio_url=audio_url,
         choices=scene.choices,
     )
 
@@ -94,8 +94,6 @@ async def get_animal_sound(animal_id: str):
     Fetches a real animal sound recording from Wikimedia Commons and
     streams it back to the browser. Results are cached in memory.
 
-    The backend handles the Wikimedia HTTP request server-side,
-    so there are no CORS issues for the frontend.
     """
     if animal_id not in ANIMAL_SEARCH_TERMS:
         raise HTTPException(status_code=404, detail=f"Unknown animal: {animal_id}")
