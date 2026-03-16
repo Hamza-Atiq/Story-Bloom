@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environments
+venv/
+venv1/
+
+# Environment secrets — injected at runtime via Cloud Run env vars
+.env
+
+# Frontend — deployed separately (Vercel)
+frontend/
+
+# Generated runtime files
+audio_temp/
+images_temp/
+
+# Git
+.git/
+.gitignore
+
+# Editor
+.vscode/
+
+# Logs
+*.log

@@ -4,5 +4,3 @@ websockets
 pydantic
 python-dotenv
 google-genai
-gTTS
-httpx

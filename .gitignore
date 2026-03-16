@@ -41,5 +41,6 @@ next-env.d.ts
 *.pem
 Thumbs.db
 
-# Audio temp files
+# Generated temp files
 audio_temp/
+images_temp/

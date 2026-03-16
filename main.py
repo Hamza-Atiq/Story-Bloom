@@ -25,10 +25,14 @@ app.add_middleware(
 )
 
 # ── Serve generated audio files at /audio/filename.mp3 ───────────────────────
-# The tts_service saves files into audio_temp/ and returns /audio/xyz.mp3 URLs
 audio_dir = Path("audio_temp")
 audio_dir.mkdir(exist_ok=True)
 app.mount("/audio", StaticFiles(directory=audio_dir), name="audio")
+
+# ── Serve generated images at /images/filename.png ───────────────────────────
+images_dir = Path("images_temp")
+images_dir.mkdir(exist_ok=True)
+app.mount("/images", StaticFiles(directory=images_dir), name="images")
 
 # ── HTTP routes ───────────────────────────────────────────────────────────────
 app.include_router(router)

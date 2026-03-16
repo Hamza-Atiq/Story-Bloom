@@ -1,103 +1,167 @@
-# StoryBloom
+# 📖 StoryBloom
 
-AI-powered interactive storyteller for children
+> **AI-powered interactive storytelling for children — built for the [Gemini Live Agent Challenge](https://geminiliveagentchallenge.devpost.com/)**
+
+StoryBloom lets children become the hero of their own adventure. They pick a name, a world, and a genre — then guide the story by tapping choices, typing ideas, or **speaking out loud**. Every scene is illustrated and narrated in real time by Gemini AI.
 
 ---
 
-## What This Does
+## Demo
 
-StoryBloom is a backend that powers a live AI storytelling experience for children. The child picks a hero name and world, then the AI generates a story scene by scene. After each scene the child gets 3 choices to guide the story. They can pick a choice by clicking a button **or by speaking** using their voice.
+> _Add your 4-minute demo video link here_
 
-**Pipeline per scene:**
+---
+
+## Architecture
+
 ```
-Child input (text / choice / voice)
-        ↓
-Gemini 2.5 Flash Lite  →  generates story scene (structured JSON)
-        ↓                         ↓
-  Pollinations.ai          gTTS (Google TTS)
-  (scene illustration)     (audio narration)
-        ↓                         ↓
-         Frontend receives scene_text + image_url + audio_url + choices
+┌──────────────────────────────────────────────────────────────┐
+│                     Child's Browser                          │
+│  Next.js 18 frontend (Vercel)                                │
+│  ┌──────────────┐  ┌────────────────┐  ┌─────────────────┐  │
+│  │  Story Page  │  │  Voice Input   │  │  Audio Player   │  │
+│  │  (choices /  │  │  Web Speech    │  │  (WAV narration)│  │
+│  │   text input)│  │  API (browser) │  └─────────────────┘  │
+│  └──────┬───────┘  └───────┬────────┘                        │
+│         │  WebSocket       │  WebSocket                      │
+└─────────┼──────────────────┼─────────────────────────────────┘
+          │                  │
+          ▼                  ▼
+┌──────────────────────────────────────────────────────────────┐
+│              FastAPI Backend (Google Cloud Run)               │
+│                                                              │
+│  /ws/story ──► Story Engine ──► Gemini 2.5 Flash Lite        │
+│                    │                (scene text + choices)   │
+│                    │                                         │
+│                    ├──► Gemini 2.5 Flash Image               │
+│                    │        (scene illustration PNG)         │
+│                    │                                         │
+│                    └──► Gemini 2.5 Flash Preview TTS         │
+│                             (WAV narration — Aoede voice)    │
+│                                                              │
+│  /ws/voice ──► Gemini Live API (gemini-2.0-flash-live-001)   │
+│                    (real-time voice transcription)           │
+└──────────────────────────────────────────────────────────────┘
+          │
+          ▼
+┌──────────────────────────────────────────────────────────────┐
+│               Google Cloud Services                          │
+│  Cloud Run · Cloud Build · Secret Manager · Container Registry│
+└──────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## Gemini Models Used
+
+| Feature | Model | Purpose |
+|---|---|---|
+| Story generation | `gemini-2.5-flash-lite` | Fast structured JSON — scene text + 3 choices |
+| Scene images | `gemini-2.5-flash-image` | Native image generation per scene |
+| Audio narration | `gemini-2.5-flash-preview-tts` | Expressive Aoede voice narration |
+| Voice input | `gemini-2.0-flash-live-001` | Real-time speech transcription (Gemini Live API) |
 
 ---
 
 ## Tech Stack
 
-| Layer | Tool |
+| Layer | Technology |
 |---|---|
-| Backend framework | FastAPI (Python) |
-| Story generation | Gemini 2.5 Flash Lite |
-| Voice input | Gemini Live API (`gemini-2.0-flash-live-001`) |
-| Image generation | Pollinations.ai (free) |
-| Text-to-speech | gTTS (free) |
-| Real-time | WebSocket |
+| Backend | FastAPI + Uvicorn (Python 3.11) |
+| Frontend | Next.js 18 + React 18 + Tailwind CSS |
+| Real-time | WebSocket (story stream + voice stream) |
+| AI SDK | Google GenAI SDK (`google-genai`) |
+| Hosting | Google Cloud Run (backend) + Vercel (frontend) |
 
 ---
 
-## Project Structure
+## Local Development
 
-```
-story_bloom/
-├── main.py                  # FastAPI app entry point
-├── config.py                # API keys and model names
-├── requirements.txt         # Python dependencies
-├── .env                     # Your API key
-│
-├── models/
-│   └── story_models.py      # Pydantic data models
-│
-├── agents/
-│   ├── gemini_agent.py      # Calls Gemini for story generation
-│   ├── gemini_live_agent.py # Calls Gemini Live for voice transcription
-│   ├── memory_agent.py      # Stores session history in memory
-│   └── story_engine.py      # Orchestrates the full story pipeline
-│
-├── services/
-│   ├── image_services.py    # Image generation via Pollinations.ai
-│   ├── tts_service.py       # Text-to-speech via gTTS
-│   └── streaming_service.py # WebSocket helper functions
-│
-├── api/
-│   ├── routes.py            # HTTP REST endpoints
-│   └── websocket.py         # WebSocket handlers
-│
-├── utils/
-│   └── prompts.py           # All Gemini prompts in one place
-│
-└── audio_temp/              # Auto-created, stores generated MP3 files
-```
+### Prerequisites
+- Python 3.11+
+- Node.js 18+
+- A [Gemini API key](https://aistudio.google.com/app/apikey)
 
----
+### 1. Backend
 
-## Setup
-
-### 1. Clone and create virtual environment
 ```bash
+# Clone the repo
+git clone https://github.com/your-username/storybloom.git
+cd storybloom
+
+# Create and activate a virtual environment
 python -m venv venv
-venv\Scripts\activate        # Windows
-# source venv/bin/activate   # Mac/Linux
-```
 
-### 2. Install dependencies
-```bash
+# Windows:
+venv\Scripts\activate
+# macOS/Linux:
+source venv/bin/activate
+
+# Install dependencies
 pip install -r requirements.txt
+
+# Create .env file
+echo "GEMINI_API_KEY=your_key_here" > .env
+
+# Start the backend
+uvicorn main:app --reload --port 8000
 ```
 
-### 3. Create your `.env` file
-Create a file named `.env` in the project root:
-```
-GEMINI_API_KEY= your_gemini_api_key_here
-```
-Get your free API key at: https://aistudio.google.com
+Backend runs at `http://localhost:8000`
+API docs at `http://localhost:8000/docs`
 
-### 4. Run the server
+### 2. Frontend
+
 ```bash
-uvicorn main:app --reload
+cd frontend
+
+# Install dependencies
+npm install
+
+# Create env file
+cp .env.local.example .env.local
+# Leave NEXT_PUBLIC_BACKEND_URL=http://localhost:8000 for local dev
+
+# Start the frontend
+npm run dev
 ```
 
-Server runs at: `http://localhost:8000`
-Interactive API docs: `http://localhost:8000/docs`
+Frontend runs at `http://localhost:3000`
+
+---
+
+## Google Cloud Run Deployment
+
+### Prerequisites
+- [gcloud CLI](https://cloud.google.com/sdk/docs/install) installed
+- A Google Cloud project with billing enabled
+
+### Deploy backend
+
+```bash
+# 1. Login
+gcloud auth login
+
+# 2. Edit deploy.sh — set your PROJECT_ID at the top
+# 3. Run it
+bash deploy.sh
+```
+
+The script handles everything:
+- Enables Cloud APIs (Cloud Run, Cloud Build, Secret Manager)
+- Stores your `GEMINI_API_KEY` in Secret Manager (not in the container)
+- Builds the Docker image with Cloud Build
+- Deploys to Cloud Run with 1Gi RAM
+- Prints the live backend URL
+
+### Deploy frontend to Vercel
+
+```bash
+npm install -g vercel
+cd frontend
+vercel
+# Set env var: NEXT_PUBLIC_BACKEND_URL = https://your-cloud-run-url.run.app
+```
 
 ---
 
@@ -105,176 +169,103 @@ Interactive API docs: `http://localhost:8000/docs`
 
 ### HTTP Endpoints
 
-#### `GET /`
-Health check. Confirms server is running.
-
-**Response:**
-```json
-{
-  "status": "running",
-  "app": "StoryBloom"
-}
-```
-
----
-
 #### `POST /api/session`
-Start a new story session. Returns the opening scene.
+Start a new story. Returns the opening scene.
 
-**Request body:**
+**Request:**
 ```json
 {
-  "session_id": "user123",
+  "session_id": "session_123",
   "hero_name": "Zara",
   "world_name": "Crystal Forest",
   "genre": "fantasy"
 }
 ```
-
-> `genre` options: `"fantasy"` `"adventure"` `"mystery"` `"space"`
+Genre options: `fantasy` · `adventure` · `mystery` · `space`
 
 **Response:**
 ```json
 {
   "type": "scene",
-  "session_id": "user123",
   "scene_number": 1,
   "scene_text": "Zara stood at the edge of the Crystal Forest...",
-  "image_url": "https://image.pollinations.ai/prompt/...",
-  "audio_url": "/audio/abc123.mp3",
-  "choices": [
-    "Enter the forest bravely",
-    "Look for a hidden path",
-    "Call out to see if anyone is home"
-  ]
+  "image_url": "/images/abc123.png",
+  "audio_url": "/audio/def456.wav",
+  "choices": ["Enter the forest bravely", "Look for a hidden path", "Call out to see if anyone is home"]
 }
 ```
-
----
 
 #### `GET /api/session/{session_id}`
-Get current session info (useful for debugging or reconnecting).
-
-**Response:**
-```json
-{
-  "session_id": "user123",
-  "hero_name": "Zara",
-  "world_name": "Crystal Forest",
-  "genre": "fantasy",
-  "scene_number": 3,
-  "history_length": 6
-}
-```
-
----
-
-#### `GET /audio/{filename}`
-Fetch a generated audio file.
-
-The `audio_url` field in scene responses already points here.
-The frontend just needs to play it:
-```js
-const audio = new Audio("http://localhost:8000" + scene.audio_url);
-audio.play();
-```
+Get session metadata (scene count, hero name, history length).
 
 ---
 
 ### WebSocket Endpoints
 
-> **Note:** WebSocket endpoints do not appear in `/docs` — this is normal. Use Postman or a WebSocket client to test them.
-
----
-
 #### `WS /ws/story`
-Main real-time story endpoint. Handles text input, button choices, and browser-transcribed voice.
+Main real-time story endpoint. Send one of these message types:
 
-**Keep the connection open** — send multiple messages to keep the story going.
-
-**Message 1 — Initialize story** (send this first):
 ```json
-{
-  "type": "init",
-  "session_id": "user123",
-  "hero_name": "Zara",
-  "world_name": "Crystal Forest",
-  "genre": "fantasy"
-}
+{ "type": "init",       "session_id": "...", "hero_name": "...", "world_name": "...", "genre": "..." }
+{ "type": "choice",     "session_id": "...", "content": "Enter the forest bravely" }
+{ "type": "text",       "session_id": "...", "content": "I want to find the dragon" }
+{ "type": "voice_text", "session_id": "...", "content": "let's go find the treasure" }
 ```
 
-**Message 2 — Send a choice** (when child clicks a button):
-```json
-{
-  "type": "choice",
-  "session_id": "user123",
-  "content": "Enter the forest bravely"
-}
-```
-
-**Message 3 — Send typed text** (when child types freely):
-```json
-{
-  "type": "text",
-  "session_id": "user123",
-  "content": "I want to find the dragon"
-}
-```
-
-**Message 4 — Send browser-transcribed voice** (Web Speech API result):
-```json
-{
-  "type": "voice_text",
-  "session_id": "user123",
-  "content": "let's go find the treasure"
-}
-```
-
-**Server responses:**
-
-Status update (shows while generating):
-```json
-{ "type": "status", "status": "generating" }
-```
-
-Scene response (the full story scene):
-```json
-{
-  "type": "scene",
-  "session_id": "user123",
-  "scene_number": 2,
-  "scene_text": "Zara stepped into the forest...",
-  "image_url": "https://image.pollinations.ai/prompt/...",
-  "audio_url": "/audio/def456.mp3",
-  "choices": ["...", "...", "..."]
-}
-```
-
-Error message:
-```json
-{ "type": "error", "message": "Session not found. Send init first." }
-```
-
----
+Server responds with `status` (generating) then `scene` (full scene data) or `error`.
 
 #### `WS /ws/voice/{session_id}`
-Raw audio input via Gemini Live API. For when the frontend captures microphone audio directly (not browser speech-to-text).
-
-**Audio format required:** PCM, 16kHz, 16-bit, mono
-
-**Protocol:**
-1. Connect to `ws://localhost:8000/ws/voice/user123`
-2. Send binary frames — raw PCM audio chunks from `MediaRecorder`
-3. Send text `"END_OF_SPEECH"` when the child stops speaking
-4. Server transcribes with Gemini Live, then generates the next scene
-
-**Server responses:**
-
-Transcription (what Gemini heard):
-```json
-{ "type": "transcription", "text": "let's go find the treasure" }
-```
-
-Then a full scene response (same format as above).
+Raw microphone audio via Gemini Live API.
+- Send binary PCM audio chunks (16kHz, 16-bit, mono)
+- Send text `"END_OF_SPEECH"` to trigger transcription
+- Server responds with `transcription` then the next `scene`
 
 ---
+
+## Project Structure
+
+```
+storybloom/
+├── main.py                  # FastAPI entry point + static file serving
+├── config.py                # API keys + model names
+├── requirements.txt         # Python dependencies
+├── Dockerfile               # Cloud Run container
+├── deploy.sh                # One-command Cloud Run deploy
+│
+├── agents/
+│   ├── gemini_agent.py      # Story generation (Gemini 2.5 Flash Lite)
+│   ├── gemini_live_agent.py # Voice transcription (Gemini Live API)
+│   ├── memory_agent.py      # Session + conversation history
+│   └── story_engine.py      # Story pipeline orchestration
+│
+├── services/
+│   ├── image_services.py    # Scene illustrations (Gemini 2.5 Flash Image)
+│   ├── tts_service.py       # Audio narration (Gemini TTS — Aoede voice)
+│   └── streaming_service.py # WebSocket helpers
+│
+├── api/
+│   ├── routes.py            # HTTP endpoints
+│   └── websocket.py         # WebSocket handlers
+│
+├── models/
+│   └── story_models.py      # Pydantic data models
+│
+├── utils/
+│   └── prompts.py           # All Gemini prompts
+│
+└── frontend/                # Next.js app (deploy to Vercel)
+    ├── app/page.js           # Home / setup page
+    ├── app/story/page.js     # Interactive story page
+    └── .env.local.example   # Frontend env template
+```
+
+---
+
+## Hackathon
+
+Built for the **[Gemini Live Agent Challenge](https://geminiliveagentchallenge.devpost.com/)** — Category: **Creative Storytellers**
+
+- Uses Gemini Live API for real-time voice interaction
+- Full multimodal output: text + AI-generated images + expressive audio narration
+- Entire AI stack powered by Google GenAI SDK
+- Backend deployed on Google Cloud Run
