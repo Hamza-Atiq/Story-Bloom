@@ -2,7 +2,7 @@
 
 > **AI-powered interactive storytelling for children — built for the [Gemini Live Agent Challenge](https://geminiliveagentchallenge.devpost.com/)**
 
-StoryBloom lets children become the hero of their own adventure. They pick a name, a world, and a genre — then guide the story by tapping choices, typing ideas, or **speaking out loud**. Every scene is illustrated and narrated in real time by Gemini AI.
+StoryBloom lets children become the hero of their own adventure. They pick a name, a world, and a genre, then guide the story by tapping choices, typing ideas, or **speaking out loud**. Every scene is illustrated and narrated in real time by Gemini AI.
 
 ---
 
@@ -15,39 +15,92 @@ StoryBloom lets children become the hero of their own adventure. They pick a nam
 ## Architecture
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│                     Child's Browser                          │
-│  Next.js 18 frontend (Vercel)                                │
-│  ┌──────────────┐  ┌────────────────┐  ┌─────────────────┐  │
-│  │  Story Page  │  │  Voice Input   │  │  Audio Player   │  │
-│  │  (choices /  │  │  Web Speech    │  │  (WAV narration)│  │
-│  │   text input)│  │  API (browser) │  └─────────────────┘  │
-│  └──────┬───────┘  └───────┬────────┘                        │
-│         │  WebSocket       │  WebSocket                      │
-└─────────┼──────────────────┼─────────────────────────────────┘
-          │                  │
-          ▼                  ▼
-┌──────────────────────────────────────────────────────────────┐
-│              FastAPI Backend (Google Cloud Run)               │
-│                                                              │
-│  /ws/story ──► Story Engine ──► Gemini 2.5 Flash Lite        │
-│                    │                (scene text + choices)   │
-│                    │                                         │
-│                    ├──► Gemini 2.5 Flash Image               │
-│                    │        (scene illustration PNG)         │
-│                    │                                         │
-│                    └──► Gemini 2.5 Flash Preview TTS         │
-│                             (WAV narration — Aoede voice)    │
-│                                                              │
-│  /ws/voice ──► Gemini Live API (gemini-2.0-flash-live-001)   │
-│                    (real-time voice transcription)           │
-└──────────────────────────────────────────────────────────────┘
-          │
-          ▼
-┌──────────────────────────────────────────────────────────────┐
-│               Google Cloud Services                          │
-│  Cloud Run · Cloud Build · Secret Manager · Container Registry│
-└──────────────────────────────────────────────────────────────┘
+╔══════════════════════════════════════════════════════════════════════════╗
+║                      Child's Browser (Vercel — Next.js 18)              ║
+║                                                                          ║
+║  ┌─────────────────────┐   ┌──────────────────┐   ┌───────────────────┐ ║
+║  │   Home Page         │   │   Story Page      │   │  Animal Selector  │ ║
+║  │  - Hero name        │   │  - Scene text     │   │  - 18 animals     │ ║
+║  │  - World name       │   │  - AI illustration│   │  - Real sounds    │ ║
+║  │  - Genre picker     │   │  - Audio narration│   │    (animal-       │ ║
+║  │  - Voice input 🎤   │   │  - Choice buttons │   │    sounds.org)    │ ║
+║  │    Web Speech API   │   │  - Text input     │   │  - Browser        │ ║
+║  │    (browser native) │   │  - Voice input 🎤 │   │    SpeechSynthesis│ ║
+║  └────────┬────────────┘   └────────┬──────────┘   └───────────────────┘ ║
+║           │ POST /api/session        │ WS /ws/story                       ║
+║           │ (HTTP REST)              │ WS /ws/voice/{session_id}          ║
+║           │                         │ POST /api/video/{session_id}        ║
+╚═══════════╪═════════════════════════╪════════════════════════════════════╝
+            │                         │
+            ▼                         ▼
+╔══════════════════════════════════════════════════════════════════════════╗
+║               FastAPI Backend  ──  Google Cloud Run                      ║
+║                                                                          ║
+║  ┌─────────────────────────────────────────────────────────────────────┐ ║
+║  │  POST /api/session  ──►  Story Engine  ──►  Memory Agent            │ ║
+║  │                               │              (session + history)    │ ║
+║  │  WS /ws/story  ───────────────┤                                     │ ║
+║  │  (init / choice / text /      │                                     │ ║
+║  │   voice_text messages)        ▼                                     │ ║
+║  │                    ┌──────────────────────┐                         │ ║
+║  │                    │  gemini-2.5-flash-lite│  ◄── Story generation  │ ║
+║  │                    │  Structured JSON out  │      scene text +      │ ║
+║  │                    │  (Pydantic schema)    │      3 choices         │ ║
+║  │                    └──────────┬───────────┘                         │ ║
+║  │                               │ scene ready — parallel calls        │ ║
+║  │                    ┌──────────┴───────────┐                         │ ║
+║  │                    │                      │                         │ ║
+║  │                    ▼                      ▼                         │ ║
+║  │       ┌────────────────────┐  ┌───────────────────────┐            │ ║
+║  │       │gemini-2.5-flash-   │  │gemini-2.5-flash-      │            │ ║
+║  │       │     -image         │  │   preview-tts          │            │ ║
+║  │       │ Native PNG image   │  │ Aoede voice — WAV      │            │ ║
+║  │       │ saved → /images/   │  │ 24kHz PCM → wave mod   │            │ ║
+║  │       └────────┬───────────┘  └──────────┬────────────┘            │ ║
+║  │                │  image_url               │  audio_url              │ ║
+║  │                └──────────────┬───────────┘                         │ ║
+║  │                               │ scene JSON sent to browser          │ ║
+║  │                               ▼                                     │ ║
+║  │  WS /ws/voice  ──► gemini-2.0-flash-live-001                        │ ║
+║  │  (raw PCM audio    Gemini Live API — real-time                      │ ║
+║  │   chunks +         speech transcription                             │ ║
+║  │   END_OF_SPEECH)   → transcription → story continue                 │ ║
+║  │                                                                     │ ║
+║  │  POST /api/video  ──► veo-2.0-generate-001                          │ ║
+║  │  (on demand,           8-sec animated video                         │ ║
+║  │   triggered by         polling loop (30–90s)                        │ ║
+║  │   Watch Video btn)     saved → /videos/                             │ ║
+║  │                                                                     │ ║
+║  │  GET /api/animal-sound ──► Wikimedia Commons proxy                  │ ║
+║  │  (fallback only —          returns OGG audio bytes                  │ ║
+║  │   browser loads direct)                                             │ ║
+║  │                                                                     │ ║
+║  │  Static file serving:                                               │ ║
+║  │    /images/* ──► images_temp/   (PNG scene illustrations)           │ ║
+║  │    /audio/*  ──► audio_temp/    (WAV narration files)               │ ║
+║  │    /videos/* ──► videos_temp/   (MP4 Veo 2 clips)                   │ ║
+║  └─────────────────────────────────────────────────────────────────────┘ ║
+╚══════════════════════════════════════════════════════════════════════════╝
+            │
+            ▼
+╔══════════════════════════════════════════════════════════════════════════╗
+║                     Google Cloud Infrastructure                          ║
+║                                                                          ║
+║   Cloud Run          Cloud Build         Secret Manager                  ║
+║   (auto-scaling      (Docker image       (GEMINI_API_KEY                 ║
+║    container host)    CI/CD builds)       stored securely)               ║
+║                                                                          ║
+║   Container Registry                                                     ║
+║   (Docker image storage)                                                 ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+Data flow summary
+─────────────────
+1. Child picks animal → browser plays real sound (animal-sounds.org, no backend)
+2. Child clicks Start → POST /api/session → story + image + audio generated in parallel
+3. Child taps choice → WS /ws/story → next scene (text + image + audio)
+4. Child speaks → WS /ws/voice → Gemini Live transcribes → next scene generated
+5. Child taps Watch Video → POST /api/video → Veo 2 polls → MP4 returned
 ```
 
 ---
@@ -258,6 +311,167 @@ storybloom/
     ├── app/story/page.js     # Interactive story page
     └── .env.local.example   # Frontend env template
 ```
+
+---
+
+## Reproducible Testing
+
+Follow these steps to run a complete end-to-end test of StoryBloom from scratch.
+
+### Prerequisites
+
+- Python 3.11+, Node.js 18+
+- A Gemini API key from [Google AI Studio](https://aistudio.google.com/app/apikey)
+- Chrome or Edge browser (required for Web Speech API voice input)
+
+---
+
+### Step 1 — Clone & set up the backend
+
+```bash
+git clone https://github.com/your-username/storybloom.git
+cd storybloom
+
+python -m venv venv
+# Windows:
+venv\Scripts\activate
+# macOS/Linux:
+source venv/bin/activate
+
+pip install -r requirements.txt
+```
+
+Create a `.env` file in the project root:
+
+```
+GEMINI_API_KEY=your_gemini_api_key_here
+```
+
+Start the backend:
+
+```bash
+uvicorn main:app --reload --port 8000
+```
+
+Verify it's running — open `http://localhost:8000/docs` in your browser. You should see the FastAPI Swagger UI with the `/api/session`, `/api/video/{session_id}`, and `/api/animal-sound/{animal_id}` endpoints.
+
+---
+
+### Step 2 — Set up the frontend
+
+In a **new terminal**:
+
+```bash
+cd frontend
+npm install
+```
+
+Create `frontend/.env.local`:
+
+```
+NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
+```
+
+Start the frontend:
+
+```bash
+npm run dev
+```
+
+Open `http://localhost:3000` in your browser.
+
+---
+
+### Step 3 — Test: Animal sound + auto-start
+
+1. On the home page, click any animal (e.g. **Cow** 🐄)
+2. You should hear the browser speak **"Cow"** then play a real mooing sound
+3. The banner at the top of the right column should show **"Cow joins the story!"**
+4. Click **Start Adventure!** without filling in any fields
+5. The story should start automatically with hero name **"Little Hero"** in **"Sunny Farm"**
+
+---
+
+### Step 4 — Test: Full story setup
+
+1. Refresh the page
+2. Type a hero name (e.g. **"Amir"**) and world name (e.g. **"Crystal Mountains"**)
+3. Select a genre (e.g. **Fantasy**)
+4. Click **Start Adventure!**
+5. Wait ~10 seconds — you should see:
+   - A story scene with 2-3 paragraphs of text
+   - An AI-generated scene illustration
+   - Audio narration starts playing automatically (Aoede voice)
+   - Three story choice buttons at the bottom
+
+---
+
+### Step 5 — Test: Continuing the story
+
+On the story page, test all three input methods:
+
+**A — Choice buttons**
+- Click any of the three choice buttons
+- A new scene with image and audio should appear within ~10 seconds
+
+**B — Text input**
+- Type something in the text box at the bottom (e.g. *"I want to find the hidden cave"*)
+- Press Enter or click Send
+- A new custom scene should be generated
+
+**C — Voice input (Chrome/Edge only)**
+- Click the microphone button 🎤
+- Say something out loud (e.g. *"Let's go find the dragon"*)
+- Your speech is transcribed via Gemini Live API and shown on screen
+- A new scene is generated from your spoken words
+
+---
+
+### Step 6 — Test: Video generation (optional, slow)
+
+On the story page, click **Watch Video 🎬**
+
+- A loading spinner appears (this takes 30–90 seconds — Veo 2 is generating an 8-second video)
+- A video modal should appear and play automatically when ready
+
+---
+
+### Step 7 — Test the REST API directly
+
+You can also test the backend without the frontend using the Swagger UI at `http://localhost:8000/docs`:
+
+**POST `/api/session`** — start a story:
+```json
+{
+  "session_id": "test_001",
+  "hero_name": "Zara",
+  "world_name": "Crystal Forest",
+  "genre": "fantasy",
+  "animal": "owl"
+}
+```
+Expected: `200 OK` with `scene_text`, `image_url`, `audio_url`, and `choices` fields populated.
+
+**GET `/api/session/test_001`** — check session state:
+Expected: `200 OK` with `scene_number: 1` and `history_length: 2`.
+
+**GET `/api/animal-sound/cow`** — fetch animal sound proxy:
+Expected: `200 OK` with `audio/ogg` content (or `503` if no internet — browser will load sounds directly in that case).
+
+---
+
+### Expected results summary
+
+| Test | Expected outcome |
+|------|-----------------|
+| Animal click | Name spoken + real animal sound plays |
+| Animal-only start | Story begins with smart defaults (no manual input needed) |
+| Story generation | Scene text + image + audio within ~10s |
+| Choice tap | Next scene generated seamlessly |
+| Text input | Custom scene based on typed input |
+| Voice input | Speech transcribed live, new scene generated |
+| Video button | 8-second Veo 2 video generated and played |
+| `/api/session` POST | `200` with all scene fields populated |
 
 ---
 
