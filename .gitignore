@@ -44,3 +44,5 @@ Thumbs.db
 # Generated temp files
 audio_temp/
 images_temp/
+
+.claude
